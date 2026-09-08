@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-ciwebsite_db}
+      MYSQL_USER: ${DB_USERNAME:-ciwebsite_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-QEBAY29jaG9uRGFmcmlrQEBA}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-QEBAY29jaG9uRGFmcmlrQEBA}
+    ports:
+      - "3319:3306"
+    volumes:
+      - ciwebsite_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-QEBAY29jaG9uRGFmcmlrQEBA}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8019:8000"
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+    environment:
+      DB_CONNECTION: ${DB_CONNECTION:-mysql}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-ciwebsite_db}
+      DB_USERNAME: ${DB_USERNAME:-ciwebsite_user}
+      DB_PASSWORD: ${DB_PASSWORD:-QEBAY29jaG9uRGFmcmlrQEBA}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: unless-stopped
+    environment:
+      PMA_HOST: ${DB_HOST:-mysql}
+      PMA_PORT: ${DB_PORT:-3306}
+      PMA_ARBITRARY: 0
+    ports:
+      - "8099:80"
+    depends_on:
+      - mysql
+
+volumes:
+  ciwebsite_db_data:
